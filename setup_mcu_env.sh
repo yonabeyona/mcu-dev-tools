@@ -632,22 +632,28 @@ EOF
 verify_all_installations() {
     log "INFO" "インストール結果を検証中..."
     
-    # Core tools verification
-    verify_installation "gcc" "gcc" "gcc.*"
-    verify_installation "git" "git" "git version.*"
-    verify_installation "cmake" "cmake" "cmake version.*"
-    verify_installation "python3" "python3" "Python.*"
+    # Core tools verification (必須)
+    verify_installation "gcc" "gcc" "gcc.*" || true
+    verify_installation "git" "git" "git version.*" || true
+    verify_installation "cmake" "cmake" "cmake version.*" || true
+    verify_installation "python3" "python3" "Python.*" || true
     
-    # MCU-specific tools
-    verify_installation "gcc-arm-none-eabi" "arm-none-eabi-gcc" "gcc.*"
-    verify_installation "openocd" "openocd" "Open On-Chip Debugger.*"
+    # MCU-specific tools (オプショナル)
+    verify_installation "gcc-arm-none-eabi" "arm-none-eabi-gcc" "gcc.*" || true
+    
+    # OpenOCDは特殊な検証（--versionが常に成功するとは限らない）
+    if command -v openocd &>/dev/null; then
+        log "SUCCESS" "openocd is installed (path: $(which openocd))"
+    else
+        log "WARN" "openocd not found in PATH"
+    fi
     
     # Optional tools (won't affect success rate significantly)
-    command -v arduino-cli &>/dev/null && verify_installation "arduino_cli" "arduino-cli" "arduino-cli.*"
-    command -v pio &>/dev/null && verify_installation "platformio" "pio" "PlatformIO.*"
-    command -v sjasmplus &>/dev/null && verify_installation "sjasmplus" "sjasmplus" "SjASMPlus.*"
-    command -v zcc &>/dev/null && verify_installation "z88dk" "zcc" ".*"
-    command -v riscv-none-elf-gcc &>/dev/null && verify_installation "riscv_gcc" "riscv-none-elf-gcc" "gcc.*"
+    command -v arduino-cli &>/dev/null && verify_installation "arduino_cli" "arduino-cli" "arduino-cli.*" || true
+    command -v pio &>/dev/null && verify_installation "platformio" "pio" "PlatformIO.*" || true
+    command -v sjasmplus &>/dev/null && verify_installation "sjasmplus" "sjasmplus" "SjASMPlus.*" || true
+    command -v zcc &>/dev/null && verify_installation "z88dk" "zcc" ".*" || true
+    command -v riscv-none-elf-gcc &>/dev/null && verify_installation "riscv_gcc" "riscv-none-elf-gcc" "gcc.*" || true
 }
 
 ##############################################
