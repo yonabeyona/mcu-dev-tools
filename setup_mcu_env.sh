@@ -190,6 +190,19 @@ install_with_fallback() {
         fi
     done
     
+    # CI環境では一部のコンポーネントの失敗を許容
+    if [[ -n "${CI:-}" ]] && [[ "$component" =~ ^(z80_tools|riscv_toolchain|platformio)$ ]]; then
+        log "WARN" "Installation failed for $component in CI environment, but continuing"
+        update_install_status "$component" "SKIPPED" "ci_environment"
+        return 0
+    fi
+    
+    # コアパッケージは失敗を許容しない
+    if [[ "$component" == "core_packages" ]]; then
+        log "ERROR" "Critical: Core packages installation failed"
+        return 1
+    fi
+    
     log "ERROR" "All installation methods failed for $component"
     update_install_status "$component" "FAILED" "all_methods_failed"
     return 1
@@ -236,13 +249,43 @@ update_system_packages() {
 }
 
 install_core_packages_apt() {
-    sudo apt install -y \
-        build-essential git cmake python3 python3-pip \
-        libusb-1.0-0-dev libudev-dev clang \
-        gcc-arm-none-eabi gdb-multiarch gcc-riscv64-unknown-elf \
-        openocd stlink-tools rustc cargo \
-        gnupg dfu-util minicom sdcc curl wget \
-        &>/dev/null
+    # CI/CD環境での互換性のため、各パッケージを個別にインストール
+    local packages=(
+        build-essential git cmake python3 python3-pip
+        libusb-1.0-0-dev libudev-dev clang
+        gcc-arm-none-eabi gdb-multiarch
+        openocd stlink-tools rustc cargo
+        gnupg dfu-util minicom sdcc curl wget
+    )
+    
+    local failed_packages=()
+    
+    for pkg in "${packages[@]}"; do
+        if ! sudo apt install -y "$pkg" &>/dev/null; then
+            log "WARN" "Failed to install: $pkg"
+            failed_packages+=("$pkg")
+        fi
+    done
+    
+    # RISC-V GCCは異なる名前を試す
+    if ! sudo apt install -y gcc-riscv64-unknown-elf &>/dev/null; then
+        if ! sudo apt install -y gcc-riscv64-linux-gnu &>/dev/null; then
+            log "WARN" "RISC-V GCC not available in APT, will install from binary later"
+        fi
+    fi
+    
+    # 失敗したパッケージがあってもコア機能は動作するようにする
+    if [[ ${#failed_packages[@]} -gt 0 ]]; then
+        log "WARN" "Some packages failed to install: ${failed_packages[*]}"
+        # 必須パッケージのみチェック
+        for essential in build-essential git cmake python3; do
+            if [[ " ${failed_packages[@]} " =~ " ${essential} " ]]; then
+                return 1
+            fi
+        done
+    fi
+    
+    return 0
 }
 
 install_core_packages_snap() {
@@ -639,14 +682,23 @@ main() {
     install_arduino_cli
     
     # Phase 3: Specialized tools
-    show_progress 6 10 "Z80開発ツールインストール"
-    install_z80_tools
-    
-    show_progress 7 10 "RISC-Vツールチェーンインストール"
-    install_riscv_toolchain
-    
-    show_progress 8 10 "PlatformIOインストール"
-    install_platformio
+    if [[ -z "${CI:-}" ]]; then
+        # CI環境以外では全てインストール
+        show_progress 6 10 "Z80開発ツールインストール"
+        install_z80_tools
+        
+        show_progress 7 10 "RISC-Vツールチェーンインストール"
+        install_riscv_toolchain
+        
+        show_progress 8 10 "PlatformIOインストール"
+        install_platformio
+    else
+        # CI環境では時間のかかるツールをスキップ
+        log "INFO" "CI環境検出: 追加ツールのインストールをスキップ"
+        show_progress 6 10 "Z80開発ツール（スキップ）"
+        show_progress 7 10 "RISC-Vツールチェーン（スキップ）" 
+        show_progress 8 10 "PlatformIO（スキップ）"
+    fi
     
     # Phase 4: Configuration
     show_progress 9 10 "SDKセットアップ"

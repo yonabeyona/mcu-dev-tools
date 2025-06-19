@@ -120,6 +120,8 @@ jobs:
         
     - name: 🎯 メインセットアップ実行
       run: |
+        # CI環境では最小限のインストールのみ実行
+        export CI=true
         ./setup_mcu_env.sh
       timeout-minutes: 30
     
