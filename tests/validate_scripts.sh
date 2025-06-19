@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # validate_scripts.sh - 既存環境でMCUセットアップスクリプトを検証
 
-set -euo pipefail
+set -uo pipefail
 
 # Colors
 readonly GREEN='\033[0;32m'
