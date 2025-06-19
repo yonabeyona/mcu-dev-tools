@@ -2,9 +2,9 @@ name: Comprehensive MCU Setup Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
   schedule:
     # 毎週月曜日の朝9時（JST）に定期実行
     - cron: '0 0 * * 1'
@@ -46,7 +46,7 @@ jobs:
     - name: 📊 ShellCheck静的解析
       run: |
         echo "=== ShellCheck解析 ==="
-        shellcheck -x *.sh tests/*.sh || true
+        shellcheck -x *.sh tests/*.sh -e SC1091 || true
     
     - name: ✅ 検証スクリプト実行
       run: |
@@ -56,7 +56,7 @@ jobs:
   # Job 2: Ubuntu 24.04でのフルインストールテスト
   test-ubuntu-2404:
     name: 🚀 Ubuntu 24.04 フルテスト
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     needs: lint-and-validate
     
     steps:
@@ -154,14 +154,14 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
         include:
           - os: ubuntu-20.04
             name: "Ubuntu 20.04 LTS"
           - os: ubuntu-22.04
             name: "Ubuntu 22.04 LTS"
-          - os: ubuntu-24.04
-            name: "Ubuntu 24.04 LTS"
+          - os: ubuntu-latest
+            name: "Ubuntu Latest"
     
     steps:
     - name: 📥 チェックアウト
