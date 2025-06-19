@@ -46,7 +46,7 @@ jobs:
     - name: 📊 ShellCheck静的解析
       run: |
         echo "=== ShellCheck解析 ==="
-        shellcheck -x *.sh tests/*.sh -e SC1091 || true
+        shellcheck -x *.sh tests/*.sh || true
     
     - name: ✅ 検証スクリプト実行
       run: |
@@ -56,7 +56,7 @@ jobs:
   # Job 2: Ubuntu 24.04でのフルインストールテスト
   test-ubuntu-2404:
     name: 🚀 Ubuntu 24.04 フルテスト
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint-and-validate
     
     steps:
