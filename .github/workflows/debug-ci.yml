@@ -1,0 +1,61 @@
+name: Debug CI Environment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+
+jobs:
+  debug-environment:
+    name: 🔍 Debug CI Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout
+      uses: actions/checkout@v4
+    
+    - name: 🔍 System Information
+      run: |
+        echo "=== System Info ==="
+        lsb_release -a || echo "lsb_release not found"
+        echo
+        echo "=== Environment Variables ==="
+        env | grep -E "(CI|GITHUB|DEBIAN)" | sort
+        echo
+        echo "=== Available Commands ==="
+        which apt || echo "apt not found"
+        which apt-get || echo "apt-get not found"
+        which sudo || echo "sudo not found"
+        echo
+        echo "=== User Info ==="
+        whoami
+        id
+        echo
+        echo "=== Directory Info ==="
+        pwd
+        ls -la
+    
+    - name: 🧪 Test APT Commands
+      run: |
+        echo "=== Testing APT update ==="
+        sudo apt-get update -qq 2>&1 | tail -20
+        echo
+        echo "=== Testing package availability ==="
+        apt-cache policy gcc-arm-none-eabi || echo "gcc-arm-none-eabi not in cache"
+        apt-cache policy gcc-riscv64-unknown-elf || echo "gcc-riscv64-unknown-elf not in cache"
+    
+    - name: 🔧 Test Bootstrap Script (Dry Run)
+      run: |
+        echo "=== Testing bootstrap script ==="
+        set -x
+        export DEBIAN_FRONTEND=noninteractive
+        export CI=true
+        export GITHUB_ACTIONS=true
+        # Run with debug output
+        bash -x ./bootstrap_mcu_prereq.sh 2>&1 | head -100
+      continue-on-error: true
+    
+    - name: 📋 Summary
+      if: always()
+      run: |
+        echo "Debug run completed. Check the logs above for any issues." 
