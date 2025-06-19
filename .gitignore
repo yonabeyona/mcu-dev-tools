@@ -1,0 +1,13 @@
+# インストールログを除外
+troubleshoot/*.log
+troubleshoot/installation_*.log
+
+# 一時ファイル
+*.tmp
+*.temp
+*.swp
+*~
+
+# OSの生成ファイル
+.DS_Store
+Thumbs.db 
