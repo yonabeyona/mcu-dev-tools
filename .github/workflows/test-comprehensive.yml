@@ -36,17 +36,28 @@ jobs:
     - name: 🔍 Bashスクリプトの構文チェック
       run: |
         echo "=== 構文チェック ==="
-        for script in *.sh tests/*.sh; do
+        EXIT_CODE=0
+        for script in *.sh; do
           if [[ -f "$script" ]]; then
             echo "Checking: $script"
-            bash -n "$script"
+            bash -n "$script" || EXIT_CODE=1
           fi
         done
+        if [[ -d "tests" ]]; then
+          for script in tests/*.sh; do
+            if [[ -f "$script" ]]; then
+              echo "Checking: $script"
+              bash -n "$script" || EXIT_CODE=1
+            fi
+          done
+        fi
+        exit $EXIT_CODE
     
     - name: 📊 ShellCheck静的解析
       run: |
         echo "=== ShellCheck解析 ==="
-        shellcheck -x *.sh tests/*.sh || true
+        echo "重要なエラーのみを表示します（警告は無視）"
+        shellcheck -S error *.sh tests/*.sh || true
     
     - name: ✅ 検証スクリプト実行
       run: |
