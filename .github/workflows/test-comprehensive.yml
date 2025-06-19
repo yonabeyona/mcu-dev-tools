@@ -36,20 +36,22 @@ jobs:
     - name: 🔍 Bashスクリプトの構文チェック
       run: |
         echo "=== 構文チェック ==="
-        for script in *.sh; do
-          echo "Checking: $script"
-          bash -n "$script"
+        for script in *.sh tests/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Checking: $script"
+            bash -n "$script"
+          fi
         done
     
     - name: 📊 ShellCheck静的解析
       run: |
         echo "=== ShellCheck解析 ==="
-        shellcheck -x *.sh || true
+        shellcheck -x *.sh tests/*.sh || true
     
     - name: ✅ 検証スクリプト実行
       run: |
-        chmod +x validate_scripts.sh
-        ./validate_scripts.sh
+        chmod +x tests/validate_scripts.sh
+        ./tests/validate_scripts.sh
 
   # Job 2: Ubuntu 24.04でのフルインストールテスト
   test-ubuntu-2404:
@@ -115,10 +117,10 @@ jobs:
     
     - name: 🐳 Dockerテスト環境構築
       run: |
-        chmod +x test_scripts_docker.sh
+        chmod +x tests/test_scripts_docker.sh
         # インタラクティブモードを無効化して実行
-        sed -i 's/docker run --rm -it/docker run --rm/g' test_scripts_docker.sh
-        ./test_scripts_docker.sh
+        sed -i 's/docker run --rm -it/docker run --rm/g' tests/test_scripts_docker.sh
+        ./tests/test_scripts_docker.sh
 
   # Job 4: Ubuntu 22.04での互換性テスト
   test-ubuntu-2204:
@@ -172,8 +174,8 @@ jobs:
     
     - name: 🧪 ドライランテスト
       run: |
-        chmod +x test_dry_run.sh
-        ./test_dry_run.sh
+        chmod +x tests/test_dry_run.sh
+        ./tests/test_dry_run.sh
 
   # Job 6: 成功率レポート
   report-summary:

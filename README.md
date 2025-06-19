@@ -33,10 +33,20 @@ Ubuntu 24.04 LTS向けのマイクロコントローラー（MCU）開発環境�
 ├── bootstrap_mcu_prereq.sh  # 前提条件インストールスクリプト
 ├── setup_mcu_env.sh        # メイン環境セットアップスクリプト（強化版）
 ├── README.md               # このファイル
-└── troubleshoot/          # トラブルシューティング用ツール
-    ├── mcu_env_diagnostic.sh  # 環境診断ツール
-    ├── installation_*.log     # インストールログ（自動生成）
-    └── README.md             # トラブルシューティングガイド
+├── tests/                  # CI/CDテストスクリプト
+│   ├── test_scripts_docker.sh  # Dockerコンテナテスト
+│   ├── validate_scripts.sh     # スクリプト検証ツール
+│   ├── test_dry_run.sh        # ドライランテスト
+│   ├── ci_setup_helper.sh     # CI/CDセットアップヘルパー
+│   └── README.md              # テストツールの説明
+├── troubleshoot/          # トラブルシューティング用ツール
+│   ├── mcu_env_diagnostic.sh  # 環境診断ツール
+│   ├── installation_*.log     # インストールログ（自動生成）
+│   └── README.md             # トラブルシューティングガイド
+└── .github/
+    └── workflows/         # GitHub Actionsワークフロー
+        ├── test-mcu-setup.yml      # 基本テスト
+        └── test-comprehensive.yml  # 包括的テスト
 ```
 
 ## インストール手順
