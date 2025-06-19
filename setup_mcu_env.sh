@@ -126,7 +126,9 @@ check_system_requirements() {
     log "INFO" "OS: $os_info"
     
     # Internet connectivity
-    if ! ping -c 1 google.com &>/dev/null; then
+    if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        log "INFO" "CI環境ではインターネット接続チェックをスキップします"
+    elif ! ping -c 1 google.com &>/dev/null; then
         log "WARN" "インターネット接続が不安定です。一部機能が制限される可能性があります。"
     fi
     
@@ -218,18 +220,20 @@ verify_installation() {
 update_system_packages() {
     log "INFO" "システムパッケージを更新中..."
     
-    if retry_command "sudo apt update"; then
-        log "SUCCESS" "APTインデックス更新完了"
-    else
-        log "WARN" "APT更新に失敗しました。代替サーバーを試行中..."
-        sudo sed -i.bak 's/archive.ubuntu.com/jp.archive.ubuntu.com/g' /etc/apt/sources.list
-        retry_command "sudo apt update" || log "WARN" "APT更新は部分的に失敗しました"
-    fi
-    
-    # CI環境の検出
+    # CI環境では最小限の更新のみ
     if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-        log "INFO" "CI環境を検出しました。アップグレードをスキップします"
+        log "INFO" "CI環境を検出しました。最小限の更新のみ実行します"
+        # apt-getを使用（より安定したCLI）
+        sudo apt-get update -qq || log "WARN" "APT更新で一部警告がありました"
     else
+        if retry_command "sudo apt update"; then
+            log "SUCCESS" "APTインデックス更新完了"
+        else
+            log "WARN" "APT更新に失敗しました。代替サーバーを試行中..."
+            sudo sed -i.bak 's/archive.ubuntu.com/jp.archive.ubuntu.com/g' /etc/apt/sources.list
+            retry_command "sudo apt update" || log "WARN" "APT更新は部分的に失敗しました"
+        fi
+        
         if retry_command "sudo apt -y upgrade"; then
             log "SUCCESS" "システムパッケージアップグレード完了"
         else

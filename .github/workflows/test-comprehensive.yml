@@ -120,9 +120,14 @@ jobs:
         
     - name: 🎯 メインセットアップ実行
       run: |
-        # CI環境では最小限のインストールのみ実行
+        # CI環境で必要最小限のインストールのみ実行
         export CI=true
-        ./setup_mcu_env.sh
+        export GITHUB_ACTIONS=true
+        ./setup_mcu_env.sh || {
+          echo "=== エラーログの最後の50行 ==="
+          tail -50 troubleshoot/*.log || true
+          exit 1
+        }
       timeout-minutes: 30
     
     - name: ✅ インストール検証
