@@ -1,5 +1,8 @@
 # MCU開発環境セットアップツール
 
+[![MCU Setup Scripts Test](https://github.com/yonabeyona/mcu-dev-tools-clean/actions/workflows/test-mcu-setup.yml/badge.svg)](https://github.com/yonabeyona/mcu-dev-tools-clean/actions/workflows/test-mcu-setup.yml)
+[![Comprehensive MCU Setup Test](https://github.com/yonabeyona/mcu-dev-tools-clean/actions/workflows/test-comprehensive.yml/badge.svg)](https://github.com/yonabeyona/mcu-dev-tools-clean/actions/workflows/test-comprehensive.yml)
+
 Ubuntu 24.04 LTS向けのマイクロコントローラー（MCU）開発環境を自動構築するためのツールセットです。複数のMCUプラットフォームに対応した包括的な開発環境を一括でセットアップできます。
 
 ## 対応マイクロコントローラー

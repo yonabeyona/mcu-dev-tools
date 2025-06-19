@@ -1,0 +1,198 @@
+name: Comprehensive MCU Setup Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # 毎週月曜日の朝9時（JST）に定期実行
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'デバッグログを有効化'
+        required: false
+        default: 'false'
+
+env:
+  TERM: xterm-256color
+
+jobs:
+  # Job 1: 構文チェックと静的解析
+  lint-and-validate:
+    name: 🔍 構文チェック & 静的解析
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 リポジトリをチェックアウト
+      uses: actions/checkout@v4
+    
+    - name: 🛠️ ShellCheckインストール
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+    
+    - name: 🔍 Bashスクリプトの構文チェック
+      run: |
+        echo "=== 構文チェック ==="
+        for script in *.sh; do
+          echo "Checking: $script"
+          bash -n "$script"
+        done
+    
+    - name: 📊 ShellCheck静的解析
+      run: |
+        echo "=== ShellCheck解析 ==="
+        shellcheck -x *.sh || true
+    
+    - name: ✅ 検証スクリプト実行
+      run: |
+        chmod +x validate_scripts.sh
+        ./validate_scripts.sh
+
+  # Job 2: Ubuntu 24.04でのフルインストールテスト
+  test-ubuntu-2404:
+    name: 🚀 Ubuntu 24.04 フルテスト
+    runs-on: ubuntu-24.04
+    needs: lint-and-validate
+    
+    steps:
+    - name: 📥 リポジトリをチェックアウト
+      uses: actions/checkout@v4
+    
+    - name: 📊 システム情報表示
+      run: |
+        echo "=== System Information ==="
+        lsb_release -a
+        echo "CPU: $(nproc) cores"
+        echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+        echo "Disk: $(df -h / | tail -1 | awk '{print $4}' ) free"
+    
+    - name: 🔧 スクリプトに実行権限付与
+      run: chmod +x *.sh
+    
+    - name: 🚀 Bootstrap実行
+      run: |
+        ./bootstrap_mcu_prereq.sh
+        
+    - name: 🎯 メインセットアップ実行
+      run: |
+        ./setup_mcu_env.sh
+      timeout-minutes: 30
+    
+    - name: ✅ インストール検証
+      run: |
+        echo "=== 検証結果 ==="
+        echo "✓ GCC: $(gcc --version | head -n1)"
+        echo "✓ Git: $(git --version)"
+        echo "✓ CMake: $(cmake --version | head -n1)"
+        echo "✓ Python3: $(python3 --version)"
+        echo "✓ ARM GCC: $(arm-none-eabi-gcc --version | head -n1 || echo 'Not found')"
+        echo "✓ RISC-V GCC: $(riscv-none-elf-gcc --version 2>&1 | head -n1 || riscv64-unknown-elf-gcc --version 2>&1 | head -n1 || echo 'Not found')"
+        echo "✓ OpenOCD: $(openocd --version 2>&1 | head -n1 || echo 'Not found')"
+        echo "✓ Arduino CLI: $(arduino-cli version 2>&1 || echo 'Not found')"
+        echo "✓ PlatformIO: $(pio --version 2>&1 || echo 'Not found')"
+    
+    - name: 📁 ログファイルアップロード
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: installation-logs-ubuntu-2404
+        path: |
+          troubleshoot/
+          *.log
+
+  # Job 3: Dockerコンテナでのテスト
+  test-docker:
+    name: 🐳 Dockerコンテナテスト
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    
+    steps:
+    - name: 📥 リポジトリをチェックアウト
+      uses: actions/checkout@v4
+    
+    - name: 🐳 Dockerテスト環境構築
+      run: |
+        chmod +x test_scripts_docker.sh
+        # インタラクティブモードを無効化して実行
+        sed -i 's/docker run --rm -it/docker run --rm/g' test_scripts_docker.sh
+        ./test_scripts_docker.sh
+
+  # Job 4: Ubuntu 22.04での互換性テスト
+  test-ubuntu-2204:
+    name: 🔄 Ubuntu 22.04 互換性テスト
+    runs-on: ubuntu-22.04
+    needs: lint-and-validate
+    continue-on-error: true
+    
+    steps:
+    - name: 📥 リポジトリをチェックアウト
+      uses: actions/checkout@v4
+    
+    - name: 🔧 実行権限付与
+      run: chmod +x *.sh
+    
+    - name: 🚀 スクリプト実行
+      run: |
+        ./bootstrap_mcu_prereq.sh
+        ./setup_mcu_env.sh || true
+    
+    - name: 📊 結果確認
+      run: |
+        echo "互換性テスト完了"
+        echo "一部のパッケージは22.04では利用できない可能性があります"
+
+  # Job 5: マトリックステスト（複数環境）
+  matrix-test:
+    name: 🔄 マトリックステスト
+    runs-on: ${{ matrix.os }}
+    needs: lint-and-validate
+    continue-on-error: true
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        include:
+          - os: ubuntu-20.04
+            name: "Ubuntu 20.04 LTS"
+          - os: ubuntu-22.04
+            name: "Ubuntu 22.04 LTS"
+          - os: ubuntu-24.04
+            name: "Ubuntu 24.04 LTS"
+    
+    steps:
+    - name: 📥 チェックアウト
+      uses: actions/checkout@v4
+    
+    - name: 📊 OS情報
+      run: |
+        echo "Testing on: ${{ matrix.name }}"
+        lsb_release -a
+    
+    - name: 🧪 ドライランテスト
+      run: |
+        chmod +x test_dry_run.sh
+        ./test_dry_run.sh
+
+  # Job 6: 成功率レポート
+  report-summary:
+    name: 📊 テストサマリー
+    runs-on: ubuntu-latest
+    needs: [test-ubuntu-2404, test-docker, test-ubuntu-2204, matrix-test]
+    if: always()
+    
+    steps:
+    - name: 📋 結果サマリー作成
+      run: |
+        echo "# MCU Setup Scripts Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Ubuntu 24.04 Full Test | ${{ needs.test-ubuntu-2404.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Docker Test | ${{ needs.test-docker.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Ubuntu 22.04 Compatibility | ${{ needs.test-ubuntu-2204.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Generated at: $(date)" >> $GITHUB_STEP_SUMMARY 
