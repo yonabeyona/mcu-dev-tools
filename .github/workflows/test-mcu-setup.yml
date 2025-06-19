@@ -28,11 +28,23 @@ jobs:
     
     - name: Run bootstrap script
       run: |
+        export DEBIAN_FRONTEND=noninteractive
+        export CI=true
+        export GITHUB_ACTIONS=true
         ./bootstrap_mcu_prereq.sh
+      timeout-minutes: 5
       
     - name: Run main setup script
       run: |
-        ./setup_mcu_env.sh
+        export DEBIAN_FRONTEND=noninteractive
+        export CI=true
+        export GITHUB_ACTIONS=true
+        ./setup_mcu_env.sh || {
+          echo "=== エラーログの最後の50行 ==="
+          tail -50 troubleshoot/*.log 2>/dev/null || echo "ログファイルが見つかりません"
+          exit 1
+        }
+      timeout-minutes: 30
     
     - name: Verify installations
       run: |
@@ -46,7 +58,7 @@ jobs:
         
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: installation-logs
         path: troubleshoot/

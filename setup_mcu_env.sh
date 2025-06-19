@@ -128,7 +128,7 @@ check_system_requirements() {
     # Internet connectivity
     if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]]; then
         log "INFO" "CI環境ではインターネット接続チェックをスキップします"
-    elif ! ping -c 1 google.com &>/dev/null; then
+    elif ! curl -s --head https://www.google.com > /dev/null 2>&1; then
         log "WARN" "インターネット接続が不安定です。一部機能が制限される可能性があります。"
     fi
     
@@ -254,19 +254,34 @@ install_core_packages_apt() {
         gnupg dfu-util minicom sdcc curl wget
     )
     
+    # CI環境では特定のオプションを追加
+    local apt_opts=""
+    if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        apt_opts="-o Dpkg::Options::=\"--force-confold\" --no-install-recommends"
+    fi
+    
     # RISC-V toolchainは別途処理（Ubuntu 24.04では名前が異なる可能性）
-    if sudo apt install -y gcc-riscv64-unknown-elf &>/dev/null; then
+    if sudo apt install -y $apt_opts gcc-riscv64-unknown-elf 2>/dev/null; then
         log "DEBUG" "RISC-V toolchain installed successfully"
     else
         log "WARN" "Standard RISC-V toolchain not available, will try alternative methods"
     fi
     
     # その他のパッケージをインストール
+    local failed_packages=()
     for pkg in "${packages[@]}"; do
-        sudo apt install -y $pkg &>/dev/null || log "WARN" "Failed to install: $pkg"
+        if ! sudo apt install -y $apt_opts $pkg 2>/dev/null; then
+            log "WARN" "Failed to install: $pkg"
+            failed_packages+=("$pkg")
+        fi
     done
     
-    return 0  # 部分的な成功でもOKとする
+    # 失敗したパッケージが半分以下なら成功とみなす
+    if [[ ${#failed_packages[@]} -lt $((${#packages[@]} / 2)) ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 install_core_packages_snap() {
