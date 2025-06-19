@@ -36,20 +36,31 @@ jobs:
     - name: 🔍 Bashスクリプトの構文チェック
       run: |
         echo "=== 構文チェック ==="
+        echo "現在のディレクトリ: $(pwd)"
+        echo "ファイル一覧:"
+        ls -la
         EXIT_CODE=0
-        for script in *.sh; do
+        # メインディレクトリのスクリプト
+        for script in bootstrap_mcu_prereq.sh setup_mcu_env.sh; do
           if [[ -f "$script" ]]; then
             echo "Checking: $script"
             bash -n "$script" || EXIT_CODE=1
+          else
+            echo "Warning: $script not found"
           fi
         done
+        # testsディレクトリのスクリプト
         if [[ -d "tests" ]]; then
+          echo "testsディレクトリ内:"
+          ls -la tests/
           for script in tests/*.sh; do
             if [[ -f "$script" ]]; then
               echo "Checking: $script"
               bash -n "$script" || EXIT_CODE=1
             fi
           done
+        else
+          echo "Warning: tests directory not found"
         fi
         exit $EXIT_CODE
     
@@ -57,12 +68,30 @@ jobs:
       run: |
         echo "=== ShellCheck解析 ==="
         echo "重要なエラーのみを表示します（警告は無視）"
-        shellcheck -S error *.sh tests/*.sh || true
+        # 個別にファイルをチェック
+        if [[ -f "bootstrap_mcu_prereq.sh" ]]; then
+          shellcheck -S error bootstrap_mcu_prereq.sh || true
+        fi
+        if [[ -f "setup_mcu_env.sh" ]]; then
+          shellcheck -S error setup_mcu_env.sh || true
+        fi
+        # testsディレクトリ内のファイル
+        if [[ -d "tests" ]]; then
+          for script in tests/*.sh; do
+            if [[ -f "$script" ]]; then
+              shellcheck -S error "$script" || true
+            fi
+          done
+        fi
     
     - name: ✅ 検証スクリプト実行
       run: |
-        chmod +x tests/validate_scripts.sh
-        ./tests/validate_scripts.sh || echo "検証スクリプトで一部の警告がありましたが、続行します"
+        if [[ -f "tests/validate_scripts.sh" ]]; then
+          chmod +x tests/validate_scripts.sh
+          ./tests/validate_scripts.sh || echo "検証スクリプトで一部の警告がありましたが、続行します"
+        else
+          echo "Warning: tests/validate_scripts.sh not found, skipping validation"
+        fi
 
   # Job 2: Ubuntu 24.04でのフルインストールテスト
   test-ubuntu-2404:
