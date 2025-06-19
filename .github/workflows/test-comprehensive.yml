@@ -44,7 +44,7 @@ jobs:
         for script in bootstrap_mcu_prereq.sh setup_mcu_env.sh; do
           if [[ -f "$script" ]]; then
             echo "Checking: $script"
-            bash -n "$script" || EXIT_CODE=1
+            bash -n "$script" || EXIT_CODE=1                                                                                                                                                                                                                                                          
           else
             echo "Warning: $script not found"
           fi
@@ -138,7 +138,7 @@ jobs:
     
     - name: 📁 ログファイルアップロード
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: installation-logs-ubuntu-2404
         path: |
@@ -194,12 +194,12 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-latest]
         include:
-          - os: ubuntu-20.04
-            name: "Ubuntu 20.04 LTS"
           - os: ubuntu-22.04
             name: "Ubuntu 22.04 LTS"
+          - os: ubuntu-24.04
+            name: "Ubuntu 24.04 LTS"
           - os: ubuntu-latest
             name: "Ubuntu Latest"
     
