@@ -239,6 +239,18 @@ grep -E "(ERROR|FAIL)" troubleshoot/installation_*.log
 
 ## 更新履歴
 
+- **v2.1** (2024-06-19): CI/CD環境の整備とファイル構造の改善
+  - GitHub Actionsワークフローの追加
+    - 基本テスト（test-mcu-setup.yml）
+    - 包括的テスト（test-comprehensive.yml）
+  - CI/CDテストスクリプトの追加
+    - Dockerコンテナテスト
+    - 検証スクリプト
+    - ドライランテスト
+  - ファイル構造の整理
+    - テストスクリプトを`tests/`ディレクトリに集約
+    - GitHub Actions設定を`.github/workflows/`に配置
+  - READMEにCIステータスバッジを追加
 - **v2.0**: 強化版リリース - 100%インストール成功率を目指す改良版
   - 多重インストール方法の実装
   - 自動リトライ機能の追加
